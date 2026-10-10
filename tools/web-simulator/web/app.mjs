@@ -1,3 +1,4 @@
+import { checkBuildUpdate } from './reload.mjs';
 import { ButtonInput } from './input.mjs';
 const $ = (id) => document.getElementById(id);
 const canvas = $('passport-display');
@@ -254,7 +255,11 @@ async function boot() {
         const data = await res.json();
         if (data.building) status('源码变更，正在重新构建', '');
         else if (data.error) { status('构建失败：仍显示上次版本', 'error'); feedback('构建失败，请查看启动终端'); }
-        else if (data.id && data.id !== buildIdentity) location.reload();
+        else if (data.id && data.id !== buildIdentity) {
+          const update = await checkBuildUpdate(buildIdentity, data.id, () => fetch('build-info.json', {cache:'no-store'}));
+          if (update === 'reload') location.reload();
+          else if (update === 'conflict') status('预览文件已由其他构建更新，请重启模拟器服务', 'error');
+        }
         else status(powered ? '运行中' : '模拟电源已关闭');
       } catch { /* Static serving remains usable without the watch endpoint. */ }
     }, 2000);

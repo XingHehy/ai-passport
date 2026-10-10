@@ -58,6 +58,19 @@ def fingerprint():
         digest.update(path.read_bytes())
     return digest.hexdigest()
 
+def restore_output_inheritance(directory):
+    # Emscripten moves JS from a private tempfile directory on Windows.
+    # Restore project ACL inheritance for these generated files only.
+    if os.name != 'nt':
+        return
+    for name in ('runtime.js', 'runtime.wasm'):
+        path = directory / name
+        if path.is_file():
+            result = subprocess.run(['icacls', str(path), '/inheritance:e'],
+                                    capture_output=True)
+            if result.returncode:
+                print('Could not restore inherited permissions: ' + str(path), flush=True)
+
 def build():
     if not (LVGL / 'lv_version.h').exists():
         raise RuntimeError('Missing pinned LVGL dependency. Build the selected firmware project first.')
@@ -79,6 +92,7 @@ def build():
             '-DAPP_CONFIG_FILE=' + (write_adapter(cfg, cache).as_posix() if cfg else '')]
     subprocess.run(args, check=True)
     subprocess.run(['cmake', '--build', str(cache), '--parallel', str(min(os.cpu_count() or 4, 8))], check=True)
+    restore_output_inheritance(cache)
     if fingerprint() != identity:
         raise RuntimeError('Sources changed during compilation. Save files and rebuild before previewing.')
     OUTPUT.mkdir(parents=True, exist_ok=True)
@@ -94,6 +108,7 @@ def build():
                 shutil.copy2(src, dest)
     for name in ('runtime.js', 'runtime.wasm'):
         shutil.copy2(cache / name, OUTPUT / name)
+    restore_output_inheritance(OUTPUT)
     (OUTPUT / 'assets').mkdir(exist_ok=True)
     shutil.copy2(ASSET, OUTPUT / 'assets' / ASSET.name)
     for name in ('README.md', 'README.zh_CN.md', 'INTEGRATION.md', 'INTEGRATION.zh_CN.md'):
