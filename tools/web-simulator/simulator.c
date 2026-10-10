@@ -1,7 +1,12 @@
 /* Browser display adapter; application UI comes directly from main/. */
 #include <emscripten.h>
 #include "lvgl.h"
+#ifdef SIM_APPLICATION_CONFIG
+#include "app_router.h"
+#else
 #include "demo.h"
+#define SIM_APP_PAGE_COUNT 2
+#endif
 #include "bsp_display.h"
 #include "bsp_display_rounding.h"
 
@@ -45,16 +50,24 @@ static void flush(lv_display_t *disp, const lv_area_t *area, uint8_t *buf)
 
 static void enter_page(void)
 {
+    #ifdef SIM_APPLICATION_CONFIG
+    sim_app_enter(page);
+    #else
     if (page == 0) demo_display_enter();
     else demo_button_enter();
+    #endif
 }
 
 static void exit_page(void)
 {
     /* Never delete LVGL's active screen; the parking screen lives until shutdown. */
     lv_screen_load(parking_screen);
+    #ifdef SIM_APPLICATION_CONFIG
+    sim_app_exit(page);
+    #else
     if (page == 0) demo_display_exit();
     else demo_button_exit();
+    #endif
 }
 
 EMSCRIPTEN_KEEPALIVE void sim_init(void)
@@ -71,17 +84,27 @@ EMSCRIPTEN_KEEPALIVE void sim_init(void)
     lv_timer_handler();
 }
 
-EMSCRIPTEN_KEEPALIVE void sim_step(void) { if (powered) lv_timer_handler(); }
+EMSCRIPTEN_KEEPALIVE void sim_step(void) {
+    if (!powered) return;
+    #ifdef SIM_APPLICATION_CONFIG
+    sim_app_step(page);
+    #endif
+    lv_timer_handler();
+}
 EMSCRIPTEN_KEEPALIVE void sim_key(int key, int event)
 {
     if (!powered || key < BSP_BTN_UP || key > BSP_BTN_OK ||
         event < BSP_BTN_PRESS || event > BSP_BTN_LONG) return;
+    #ifdef SIM_APPLICATION_CONFIG
+    sim_app_key(page, (bsp_btn_t)key, (bsp_btn_ev_t)event);
+    #else
     if (page == 0) demo_display_key((bsp_btn_t)key, (bsp_btn_ev_t)event);
     else demo_button_key((bsp_btn_t)key, (bsp_btn_ev_t)event);
+    #endif
 }
 EMSCRIPTEN_KEEPALIVE void sim_page(int next)
 {
-    if (next < 0 || next > 1) return;
+    if (next < 0 || next >= SIM_APP_PAGE_COUNT) return;
     exit_page();
     page = next;
     if (powered) enter_page();

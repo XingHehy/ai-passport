@@ -68,8 +68,8 @@ git clone <WEB_SIMULATOR_REPOSITORY_URL> web-simulator
 cd web-simulator
 ```
 
-The directory must be named `web-simulator` under the application project's
-`tools` directory; the current scripts depend on this layout. To have the
+Without --project, the directory layout above determines the application root.
+Use --project to select an external application without copying the simulator. To have the
 application repository ignore this independent checkout, add
 `/tools/web-simulator/` to its `.git/info/exclude`. This is local configuration
 and does not modify the official `.gitignore`.
@@ -103,6 +103,41 @@ python3 --version
 `emcc` should report 4.0.23. Installation is needed once; activation applies to
 the current terminal. In a new terminal, source the SDK's `emsdk_env.sh` again,
 or pass its directory to the launcher using `EMSDK` as shown below.
+
+### Windows
+
+Native Windows works without Git Bash or WSL. For the first installation, run these in PowerShell with Git and Python available. Skip cloning and installation when reusing an SDK:
+
+```powershell
+Set-Location 'F:\myProjects\folotoy'
+git clone https://github.com/emscripten-core/emsdk.git emsdk
+Set-Location emsdk
+.\emsdk.bat install 4.0.23
+.\emsdk.bat activate 4.0.23
+```
+
+Open ESP-IDF PowerShell to reuse installed host tools, then enter CMD with the SDK environment. Running a .bat directly in PowerShell should not be assumed to update the parent PowerShell environment:
+
+```powershell
+cmd /k 'call F:\myProjects\folotoy\emsdk\emsdk_env.bat'
+```
+
+Run the following in that **CMD** session. The example uses installed CMake 3.30.2 and Ninja 1.12.1; substitute actual directories if different. Skip set if the tools are already available:
+
+```bat
+set "PATH=D:\Espressif\tools\cmake\3.30.2\bin;D:\Espressif\tools\ninja\1.12.1;%PATH%"
+emcc --version
+where emcmake
+cmake --version
+ninja --version
+python --version
+cd /d F:\myProjects\folotoy\ai-passport\tools\web-simulator
+python run.py
+```
+
+Open http://127.0.0.1:8765/, keep the window open and press Ctrl+C to stop. This launches ai-passport's default test pages. For your application, launch from its tools/web-simulator and follow the [integration guide](INTEGRATION.md). Setting EMSDK alone does not make run.py load SDK settings; automatic SDK loading belongs to start.sh.
+
+Use python run.py --port 8766 to change ports, python run.py --no-watch to disable monitoring, or python build.py to build only. New terminals require environment/PATH activation again, not reinstallation.
 
 ## 3. Start the simulator
 
@@ -205,22 +240,7 @@ This uses the same input normalization as the visible controls.
 
 ## 6. Connect your application
 
-The simulator initially includes two hardware-test pages. A new application's
-pages must be connected explicitly:
-
-1. Keep application state, layout, and LVGL UI independent of ESP-IDF services.
-2. Add shared UI source files to `CMakeLists.txt`, and add those files and their
-   headers to `SHARED` in `build.py` so changes trigger a rebuild.
-3. Replace `enter_page()`, `exit_page()`, and key routing in `simulator.c` with
-   the application's lifecycle and input handlers. Update the page selector
-   and descriptions in `web/index.html` and `web/app.mjs` to match.
-4. Adapt device-only services with explicit simulated values or unavailable
-   states. Keep application behavior in shared C code.
-5. Rebuild, test navigation and teardown, and run the firmware validation gate.
-
-The browser adapter is single-threaded, so its LVGL lock is a no-op. Firmware
-still requires the normal LVGL locking and task-lifecycle rules. Derivative
-applications must design their own UI; these test pages are integration fixtures.
+The launcher automatically discovers web-simulator.json in the selected application root. It configures sources, assets, page menus and C hooks without editing generic CMake or routing files. Prepare the application interfaces and browser service adapters once; then use `python run.py --project "F:\path\your-app"`. See the [automatic integration guide](INTEGRATION.md) for the manifest and detection limits.
 
 ## Validation and limitations
 

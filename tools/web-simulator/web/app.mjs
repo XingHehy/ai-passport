@@ -8,6 +8,7 @@ for (let i = 3; i < rawFrame.length; i += 4) rawFrame[i] = 255;
 let runtime, ready = false, powered = true, brightness = 100, dirty = true, paused = false;
 let frames = 0, totalFrames = 0, lastStats = performance.now(), buildIdentity;
 let feedbackTimer;
+let pageMetadata = [];
 const keys = { UP: 0, DOWN: 1, OK: 2 };
 const events = { PRESS: 0, CLICK: 1, DOUBLE: 2, LONG: 3 };
 const startTime = performance.now();
@@ -123,8 +124,8 @@ window.addEventListener('blur', cancelInput);
 document.addEventListener('visibilitychange', () => { if (document.hidden) cancelInput(); });
 $('page-select').addEventListener('change', () => {
   cancelInput(); runtime._sim_page(Number($('page-select').value));
-  $('page-help').textContent = $('page-select').value === '0' ? 'OK 切换颜色；UP / DOWN 调整背光。' : '屏幕显示 PRESS / CLICK / DOUBLE / LONG 事件。';
-  dirty = true; log('PAGE', $('page-select').value === '0' ? 'DISPLAY' : 'BUTTON');
+  $('page-help').textContent = pageMetadata[Number($('page-select').value)]?.help || ''; 
+  dirty = true; log('PAGE', pageMetadata[Number($('page-select').value)]?.title || $('page-select').value);
 });
 $('reset').addEventListener('click', () => {
   cancelInput(); powered = true; runtime._sim_reset(); dirty = true; status('运行中'); log('SYSTEM', 'RESET');
@@ -221,6 +222,11 @@ async function loadWasm() {
 async function boot() {
   try {
     const info = await fetch('build-info.json').then(r => { if (!r.ok) throw new Error('缺少构建信息'); return r.json(); });
+    pageMetadata = info.pages || [];
+    if(pageMetadata.length) {
+      $('page-select').replaceChildren(...pageMetadata.map((page,index) => {const option=document.createElement('option');option.value=String(index);option.textContent=page.title;return option;}));
+      $('page-help').textContent=pageMetadata[0].help || '';
+    }
     buildIdentity = info.id;
     $('build-identity').textContent = `LVGL ${info.lvgl} · ${info.id.slice(0, 8)}`;
     const wasmBinary = await loadWasm();

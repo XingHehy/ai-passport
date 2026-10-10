@@ -60,7 +60,7 @@ git clone <WEB_SIMULATOR_REPOSITORY_URL> web-simulator
 cd web-simulator
 ```
 
-目录名必须为 `web-simulator`，且位于应用项目的 `tools` 下，当前脚本依赖此目录结构。
+省略 --project 时，以上目录结构决定默认应用根目录；使用 --project 可指定外部工程，无需复制模拟器。
 若需要让官方项目的 Git 忽略这个独立仓库，可在官方项目的
 `.git/info/exclude` 中添加 `/tools/web-simulator/`；这只影响本地，不修改官方 `.gitignore`。
 
@@ -92,6 +92,41 @@ python3 --version
 `emcc` 应显示 4.0.23。安装只需执行一次，环境激活仅对当前终端生效。
 新开终端后，重新执行 SDK 的 `source .../emsdk_env.sh`，或按下面的方式通过
 `EMSDK` 告诉启动脚本 SDK 所在目录。
+
+### Windows
+
+原生 Windows 可直接使用，不需要 Git Bash 或 WSL。首次安装时在有 Git 和 Python 的 PowerShell 执行；已有 SDK 时跳过克隆和安装：
+
+```powershell
+Set-Location 'F:\myProjects\folotoy'
+git clone https://github.com/emscripten-core/emsdk.git emsdk
+Set-Location emsdk
+.\emsdk.bat install 4.0.23
+.\emsdk.bat activate 4.0.23
+```
+
+打开 ESP-IDF PowerShell 以复用已安装的主机工具，再进入加载 SDK 环境的 CMD。不要在 PowerShell 里直接运行 .bat 后假定它能修改父 PowerShell 的环境：
+
+```powershell
+cmd /k 'call F:\myProjects\folotoy\emsdk\emsdk_env.bat'
+```
+
+下面的命令在新进入的 **CMD** 中执行。示例使用已安装的 CMake 3.30.2 和 Ninja 1.12.1；如果安装目录不同，替换为真实路径。工具已经可用时不需要 set：
+
+```bat
+set "PATH=D:\Espressif\tools\cmake\3.30.2\bin;D:\Espressif\tools\ninja\1.12.1;%PATH%"
+emcc --version
+where emcmake
+cmake --version
+ninja --version
+python --version
+cd /d F:\myProjects\folotoy\ai-passport\tools\web-simulator
+python run.py
+```
+
+打开 http://127.0.0.1:8765/，保持窗口开启，Ctrl+C 停止。这里启动的是 ai-passport 的默认测试页。自己的应用需要从它的 tools/web-simulator 启动，并按 [应用接入指南](INTEGRATION.zh_CN.md) 接入页面。run.py 不会仅因设置 EMSDK 就自动加载 SDK；该自动加载行为属于 start.sh。
+
+可运行 python run.py --port 8766 更换端口，python run.py --no-watch 关闭监测，python build.py 只编译。新开终端需再次加载 SDK 环境及所需 PATH，无需重新安装。
 
 ## 3. 启动模拟器
 
@@ -186,19 +221,7 @@ passportSimulator.up('OK');
 
 ## 6. 接入自己的应用
 
-模拟器默认只接入两个硬件测试页面。新应用需要显式接入自己的页面：
-
-1. 将应用状态、布局和 LVGL 界面与 ESP-IDF 服务分开。
-2. 把共享界面源码添加到 `CMakeLists.txt`，同时将源码及相关头文件添加到
-   `build.py` 的 `SHARED`，使修改能够触发重新构建。
-3. 将 `simulator.c` 的 `enter_page()`、`exit_page()` 和按键路由改为应用自己的
-   生命周期及输入处理函数，并同步更新 `web/index.html` 和 `web/app.mjs` 的
-   页面选项与说明。
-4. 为设备服务提供明确的模拟值或不可用状态，应用行为仍保留在共享 C 代码中。
-5. 重新构建，检查页面导航和退出清理，再执行固件验证。
-
-浏览器适配层为单线程，LVGL 锁为空实现；固件仍须遵守正常的 LVGL 锁和任务生命周期
-规则。衍生应用必须独立设计界面，现有测试页仅作为接入验证用例。
+启动器自动检测目标工程根目录的 web-simulator.json，根据配置登记源码、资源、页面菜单和 C 接口，无需修改通用 CMake 或路由文件。首次准备应用接口和浏览器服务适配后，运行 `python run.py --project "F:\path\your-app"` 即可。配置格式和自动检测范围见 [自动接入指南](INTEGRATION.zh_CN.md)。
 
 ## 验证与范围
 

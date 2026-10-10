@@ -1,19 +1,30 @@
 cmake_minimum_required(VERSION 3.16)
-project(passport_web_simulator C)
+project(passport_web_simulator C CXX)
 if(NOT EMSCRIPTEN)
     message(FATAL_ERROR "Build with emcmake and Emscripten")
 endif()
-get_filename_component(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+if(NOT REPO_ROOT)
+    get_filename_component(REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../.." ABSOLUTE)
+endif()
 set(LVGL_ROOT "${REPO_ROOT}/managed_components/lvgl__lvgl")
 file(GLOB_RECURSE LVGL_SOURCES CONFIGURE_DEPENDS "${LVGL_ROOT}/src/*.c")
 add_library(sim_lvgl STATIC ${LVGL_SOURCES})
 target_include_directories(sim_lvgl PUBLIC "${LVGL_ROOT}" "${CMAKE_CURRENT_SOURCE_DIR}")
 target_compile_definitions(sim_lvgl PUBLIC LV_CONF_INCLUDE_SIMPLE)
+if(APP_CONFIG_FILE)
+    include("${APP_CONFIG_FILE}")
+    add_executable(runtime simulator.c ${APP_SOURCES}
+        "${REPO_ROOT}/components/bsp/src/bsp_display_rounding.c")
+    get_filename_component(APP_ADAPTER_DIR "${APP_CONFIG_FILE}" DIRECTORY)
+    target_include_directories(runtime PRIVATE "${APP_ADAPTER_DIR}" ${APP_INCLUDE_DIRS})
+    target_compile_definitions(runtime PRIVATE SIM_APPLICATION_CONFIG ${APP_DEFINES})
+else()
 add_executable(runtime simulator.c
     "${REPO_ROOT}/main/ui_pixel.c"
     "${REPO_ROOT}/main/demo_display.c"
     "${REPO_ROOT}/main/demo_button.c"
     "${REPO_ROOT}/components/bsp/src/bsp_display_rounding.c")
+endif()
 target_include_directories(runtime PRIVATE stubs "${REPO_ROOT}/main"
     "${REPO_ROOT}/components/bsp/include" "${REPO_ROOT}/components/bsp/src")
 target_link_libraries(runtime sim_lvgl)

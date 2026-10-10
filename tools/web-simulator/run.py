@@ -6,14 +6,17 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 import json
 import threading
 import time
-from build import build, fingerprint, OUTPUT
+import build as builder
+from build import build, fingerprint
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--project', help='Application project root')
     parser.add_argument('--port', type=int, default=8765)
     parser.add_argument('--no-watch', action='store_true')
     args = parser.parse_args()
+    builder.configure_project(args.project)
     state = {'id': build(), 'building': False, 'error': None}
     stop = threading.Event()
 
@@ -56,7 +59,7 @@ def main():
                 state['building'] = False
 
     # Bind only loopback, and never serve the source checkout or firmware/debug bundles.
-    server = ThreadingHTTPServer(('127.0.0.1', args.port), partial(Handler, directory=str(OUTPUT)))
+    server = ThreadingHTTPServer(('127.0.0.1', args.port), partial(Handler, directory=str(builder.OUTPUT)))
     if not args.no_watch: threading.Thread(target=watch, daemon=True).start()
     print(f'Local: http://127.0.0.1:{args.port}/', flush=True)
     print('Watching shared UI sources; Ctrl+C to stop.', flush=True)
