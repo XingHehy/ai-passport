@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101417">
+  <title>Passport · 界面调试台</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./"><span class="brand-symbol">↗</span> AI PASSPORT <span class="brand-slash">/</span> <span class="brand-sub">界面调试台</span></a>
+    <span class="local-badge"><i></i> LOCAL WORKSPACE</span>
+  </header>
+  <main>
+    <section class="workspace-heading">
+      <div><p class="eyebrow">DEVELOPER TOOLS / 01</p><h1>先在屏幕里，<span>把想法跑起来。</span></h1><p class="intro">真实 C / LVGL 渲染 · 无需连接设备</p></div>
+      <div class="runtime-status"><span id="status-dot" class="status-dot"></span><div><strong id="runtime-status">正在载入运行时</strong><small id="build-identity">LVGL 9.5.0 · WebAssembly</small></div></div>
+    </section>
+    <div class="workspace">
+      <section class="stage-panel" aria-label="设备预览">
+        <div class="stage-top"><span><i class="live-dot"></i> LIVE PREVIEW</span><div class="view-switch" role="group" aria-label="预览模式"><button id="shell-view" aria-pressed="true">设备</button><button id="screen-view" aria-pressed="false">仅屏幕</button></div></div>
+        <div id="simulator-stage" class="stage">
+          <div class="passport-shell">
+            <img class="shell-art" src="assets/ai-passport-shell-reference.png" alt="AI Passport 透明外壳" draggable="false">
+            <div class="screen-bezel">
+              <canvas id="passport-display" width="240" height="320" aria-label="240×320 LVGL 模拟屏幕"></canvas>
+              <div id="screen-overlay" class="screen-overlay" role="status"><strong>LVGL / WASM</strong><span id="loading-detail">正在加载…</span><progress id="loading-progress" max="100"></progress></div>
+            </div>
+            <div class="hardware-controls" aria-label="模拟设备按键">
+              <button class="hardware-key key-up" data-key="UP" type="button" aria-label="上键：支持单击、双击和长按"><span>UP</span></button>
+              <button class="hardware-key key-down" data-key="DOWN" type="button" aria-label="下键：支持单击、双击和长按"><span>DOWN</span></button>
+              <button class="hardware-key key-ok" data-key="OK" type="button" aria-label="确定键：支持单击、双击和长按"><span>OK</span></button>
+              <button class="hardware-key key-power" data-key="POWER" type="button" aria-label="切换模拟电源"><span>⏻</span></button>
+            </div>
+          </div>
+          <div class="simulator-actions">
+            <button id="screenshot-copy" class="icon-button" type="button" title="复制屏幕截图" aria-label="截取模拟器屏幕并复制到剪贴板" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg></button>
+            <button id="screenshot-download" class="icon-button" type="button" title="下载 PNG" aria-label="下载屏幕 PNG 截图" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg></button>
+            <button id="fullscreen-toggle" class="icon-button" type="button" title="全屏预览" aria-controls="simulator-stage" aria-pressed="false" aria-label="全屏显示模拟器"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></svg></button>
+          </div>
+          <output id="screenshot-feedback" class="feedback" aria-live="polite" hidden></output>
+        </div>
+        <div class="stage-bottom"><span>240 × 320 <span class="divider">/</span> RGB565</span><span id="frame-stats">等待首帧</span></div>
+      </section>
+      <aside class="debug-panel" aria-label="调试控制">
+        <section class="control-section"><div class="section-title"><span>01</span><h2>运行页面</h2></div>
+          <label class="field-label" for="page-select">选择已接入的 C 界面</label>
+          <select id="page-select" disabled><option value="0">显示测试 · demo_display.c</option><option value="1">按键测试 · demo_button.c</option></select>
+          <p id="page-help" class="help">OK 切换颜色；UP / DOWN 调整背光。</p>
+          <button id="reset" class="reset-button" disabled><span>↻</span> 重新启动当前页面</button>
+          <div class="source-note"><span class="code-tag">C</span><p>直接编译项目界面源码，<br>浏览器负责显示和输入。</p></div>
+        </section>
+        <section class="control-section"><div class="section-title"><span>02</span><h2>输入与环境</h2></div>
+          <div class="key-strip"><button data-key="UP" class="soft-key" disabled><span>↑</span><small>UP</small></button><button data-key="DOWN" class="soft-key" disabled><span>↓</span><small>DOWN</small></button><button data-key="OK" class="soft-key" disabled><span>↵</span><small>OK</small></button><button data-key="POWER" class="soft-key" disabled><span>⏻</span><small>电源</small></button></div>
+          <p class="help">键盘 ↑ / ↓ / Enter · P 切换模拟电源<br>长按 600 ms · 双击间隔 250 ms</p>
+          <div class="field-row"><label class="field-label" for="adc-input">模拟 ADC 电压</label><output id="adc-output">不可用</output></div>
+          <div class="adc-controls"><input id="adc-input" type="range" min="0" max="3300" value="3300" disabled aria-label="模拟 ADC 电压，单位毫伏"><label class="checkbox-label"><input id="adc-enabled" type="checkbox" disabled> 启用</label></div>
+          <p class="micro-help">模拟值，不是设备测量；仅用于按键测试页面。</p>
+        </section>
+        <section class="control-section event-section"><div class="section-title"><span>03</span><h2>事件记录</h2><button id="clear-log" class="text-button">清空</button></div>
+          <div class="log-heading"><span>TIME</span><span>KEY / EVENT</span></div><ol id="event-log" class="event-log" aria-label="按键事件记录"><li class="log-empty">按下任意按键开始调试</li></ol>
+        </section>
+      </aside>
+    </div>
+    <footer><span>界面预览与输入模拟；硬件性能需要真机验证。</span><a href="README.zh_CN.md" target="_blank" rel="noopener">接入自己的应用 ↗</a></footer>
+  </main>
+  <script src="runtime.js"></script><script type="module" src="app.mjs"></script>
+</body>
+</html>
